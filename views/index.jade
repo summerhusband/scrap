@@ -1,0 +1,66 @@
+extends layout
+
+block content
+    mixin showItem(item)
+        div.item(id= item.id)
+            a(href=item.href)
+                p.title= item.title
+            img.image(src=item.image)
+            div.detail
+                div
+                    p.price 价格: #{item.price}
+                    p.percentage 已经订购: #{item.percentage}%
+                div
+                    p.reviews 评价人数: #{item.reviews}
+                    p.rating 评价等级：
+                        img(src=item.rating)
+    a#top
+    h3 如果有任何疑问， 请发邮件到kissyyg@126.com
+    div#items
+        +showItem(itemTemplate)
+        each item in items
+            +showItem(item)
+    a#toTop(href='#top')
+        p 回到顶部
+    script(src = "/socket.io/socket.io.js")
+    script(src="http://code.jquery.com/jquery-1.11.1.js")
+    script.
+        $(window).scroll(function () {
+            if ($(this).scrollTop() > 100) {
+                $('#toTop').fadeIn()
+            } else {
+                $('#toTop').fadeOut()
+            }
+        })
+        function addItem(newItem) {
+            var item = newItem.item
+            var afterId = newItem.afterId
+            if (afterId == -1) {
+                afterId = 'empty'
+            }
+            console.log('add new item of id ' + item.id + ' after id ' + afterId + item.title)
+            var id = item.id
+            var newItem = $('#empty').clone().attr('id', id)
+            newItem.insertAfter('#' + afterId)
+            $('#' + id + ' a').attr('href', item.href)
+            $('#' + id + ' p.title').text(item.title)
+            $('#' + id + ' .image').attr("src", item.image)
+            $('#' + id + ' div.detail p.price').text('价格: ' + item.price)
+            $('#' + id + ' div.detail p.percentage').text('已经订购: ' + item.percentage + '%')
+            $('#' + id + ' div.detail p.reviews').text('评价人数:' + item.reviews)
+            $('#' + id + ' div.detail p.rating img').attr("src", item.rating)
+        }
+        function updateItem(newItem) {
+            var item = newItem.item
+            console.log('update item ' + item.title)
+            $('#' + item.id).remove()
+            addItem(newItem)
+        }
+        function deleteItem(item) {
+            console.log('delete item ' + item.title)
+            $('#' + item.id).remove()
+        }
+        var socket = io()
+        socket.on('addItem', addItem)
+        socket.on('updateItem', updateItem)
+        socket.on('deleteItem', deleteItem)

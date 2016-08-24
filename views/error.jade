@@ -1,0 +1,43 @@
+extends layout
+
+block content
+  mixin showItem(item, index)
+    div.item(id= ('item' + index))
+      a(href=item.href)
+        p.title= item.title
+      img.image(src=item.image)
+      div.detail
+        div
+          p.price 价格: #{item.price}
+          p.percentage 已经订购: #{item.percentage}%
+        div
+          p.reviews 评价人数: #{item.reviews}
+          p.rating 评价等级：
+            img(src=item.rating)
+  h3 如果有任何疑问， 请发邮件到kissyyg@126.com
+  script(src = "/socket.io/socket.io.js")
+  script(src="http://code.jquery.com/jquery-1.11.1.js")
+  script.
+    var socket = io()
+    $('#itemEmpty').hide()
+    socket.on('items', function (newItems) {
+      console.log('items length is:' + newItems.length)
+      var emptyItem = $('#itemEmpty').clone()
+      $('#items').empty()
+      newItems.forEach(function (item, index) {
+        var newItem = emptyItem.clone().attr('id', 'item' + index)
+        newItem.appendTo('#items')
+        $('#item' + index + ' a').attr('href', item.href)
+        $('#item' + index + ' p.title').text(item.title)
+        $('#item' + index + ' .image').attr("src", item.image)
+        $('#item' + index + ' div.detail p.price').text('价格: ' + item.price)
+        $('#item' + index + ' div.detail p.percentage').text('已经订购: ' + item.percentage + '%')
+        $('#item' + index + ' div.detail p.reviews').text('评价人数:' + item.reviews)
+        $('#item' + index + ' div.detail p.rating img').attr("src", item.rating)
+      })
+      emptyItem.appendTo('#items')
+    })
+  div#items
+    each item, index in items
+      +showItem(item, index)
+    +showItem(itemTemplate, 'Empty')

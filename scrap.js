@@ -40,10 +40,21 @@ function fetchPercentage (x) {
     return function (callback) {
         driver.wait(until.elementLocated(By.id('dealPercentClaimed')), timeOut).then(function () {
             driver.findElement(By.id('100_dealView' + x)).then(function (li) {
-                li.findElement(By.id('dealPercentClaimed')).getText().then(function (percentage) {
+                percentagePromise = li.findElement(By.id('dealPercentClaimed')).getText()
+                percentagePromise.then(function (percentage) {
                     var percentIndex = percentage.indexOf('%')
                     var percent = percentage.substring(0, percentIndex)
                     callback(null, percent)
+                })
+                percentagePromise.catch(function (ex) {
+                    if (ex instanceof StaleElementReferenceError) {
+                        console.log('catch StaleElementReferenceError, retry to get percentage')
+                        li.findElement(By.id('dealPercentClaimed')).getText().then(function (price) {
+                            callback(null, price)
+                        })
+                    } else {
+                        throw e
+                    }
                 })
             })
         })
@@ -69,19 +80,20 @@ function fetchPrice (x) {
         driver.findElement(By.id('100_dealView' + x)).then(function (li) {
             li.findElements(By.id('dealDealPrice')).then(function (elements) {
                 if(elements.length>0) {
-                    try {
-                        elements[0].findElement(By.css('b')).getText().then(function (price) {
-                            callback(null, price)
-                        })
-                    }
-                    catch(e) {
-                        if (e instanceof StaleElementReferenceError) {
+                    pricePromise = elements[0].findElement(By.css('b')).getText()
+                    pricePromise.then(function (price) {
+                        callback(null, price)
+                    })
+                    pricePromise.catch(function (ex) {
+                        if (ex instanceof StaleElementReferenceError) {
                             console.log('catch StaleElementReferenceError, retry to get price')
                             elements[0].findElement(By.css('b')).getText().then(function (price) {
                                 callback(null, price)
                             })
+                        } else {
+                            throw e
                         }
-                    }
+                    })
                 }
                 else {
                     callback(null, null)
@@ -306,12 +318,29 @@ function postProcess(err, results)
 }
 
 function spider() {
-    driver.get("http://www.z.cn").then(function () {
-        driver.wait(until.elementLocated(By.id('dealTotalPages')), timeOut).getText().then(function (totalPages) {
-            jobs = []
-            populateJob(parseInt(totalPages))
-            async.series(jobs, postProcess)
+    promise = driver.get("http://www.z.cn")
+    promise.then(function () {
+        waitPormise = driver.wait(until.elementLocated(By.id('dealTotalPages')), timeOut)
+        waitPormise.catch(function (ex) {
+            console.log('catch exception in wait: ' + ex)
+            spider()
         })
+        waitPormise.then(function (element) {
+            element.getText().then(function (totalPages) {
+                jobs = []
+                populateJob(parseInt(totalPages))
+                async.series(jobs, postProcess)
+            })
+        })
+    })
+    promise.catch(function (ex) {
+        console.log('catch exception in get' + ex)
+        if (ex instanceof TimeoutError) {
+            console.log('cat not visit www.z.cn, try again')
+            spider()
+        } else {
+            throw ex
+        }
     })
 }
 
@@ -359,8 +388,11 @@ app.get('/', function (req, res, next) {
     res.render('index', {items: itemsInfo, itemTemplate: emptyItem})
 })
 
-var timeOut = 360 * 1000
+var timeOut = 1800 * 1000
+
 new webdriver.Builder().forBrowser('chrome').buildAsync().then(function (drive) {
     driver = drive
+    //driver.manage().timeouts().pageLoadTimeout(3 * 1000)
+    //driver.manage().timeouts().implicitlyWait(3 * 1000)
     spider()
 })

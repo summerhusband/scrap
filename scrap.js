@@ -3,7 +3,9 @@
  */
 var webdriver = require('selenium-webdriver'),
     By = webdriver.By,
-    WebElement = webdriver.WebElement
+    WebElement = webdriver.WebElement;
+error = webdriver.error
+StaleElementReferenceError = error.StaleElementReferenceError;
 until = webdriver.until;
 var async = require('async')
 var fs = require('fs');
@@ -62,15 +64,24 @@ function fetchImage (x) {
     }
 }
 
-
 function fetchPrice (x) {
     return function (callback) {
         driver.findElement(By.id('100_dealView' + x)).then(function (li) {
             li.findElements(By.id('dealDealPrice')).then(function (elements) {
                 if(elements.length>0) {
-                    li.findElement(By.id('dealDealPrice')).findElement(By.css('b')).getText().then(function (price) {
-                        callback(null, price)
-                    })
+                    try {
+                        elements[0].findElement(By.css('b')).getText().then(function (price) {
+                            callback(null, price)
+                        })
+                    }
+                    catch(e) {
+                        if (e instanceof StaleElementReferenceError) {
+                            console.log('catch StaleElementReferenceError, retry to get price')
+                            elements[0].findElement(By.css('b')).getText().then(function (price) {
+                                callback(null, price)
+                            })
+                        }
+                    }
                 }
                 else {
                     callback(null, null)

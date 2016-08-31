@@ -80,19 +80,10 @@ function fetchPrice (x) {
         driver.findElement(By.id('100_dealView' + x)).then(function (li) {
             li.findElements(By.id('dealDealPrice')).then(function (elements) {
                 if(elements.length>0) {
-                    pricePromise = elements[0].findElement(By.css('b')).getText()
-                    pricePromise.then(function (price) {
-                        callback(null, price)
-                    })
-                    pricePromise.catch(function (ex) {
-                        if (ex instanceof StaleElementReferenceError) {
-                            console.log('catch StaleElementReferenceError, retry to get price')
-                            elements[0].findElement(By.css('b')).getText().then(function (price) {
-                                callback(null, price)
-                            })
-                        } else {
-                            throw e
-                        }
+                    elements[0].findElement(By.css('b')).then(function (element) {
+                        element.getText().then(function (price) {
+                            callback(null, price)
+                        })
                     })
                 }
                 else {
@@ -339,7 +330,11 @@ function spider() {
             console.log('cat not visit www.z.cn, try again')
             spider()
         } else {
-            throw ex
+            driver.close().then(function (p) {
+                console.log('catch unknown expcetion and exit')
+                driver.close()
+                throw ex
+            })
         }
     })
 }

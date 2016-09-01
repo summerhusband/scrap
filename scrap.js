@@ -16,8 +16,12 @@ function fetchTitle (x) {
     return function (callback) {
         driver.wait(until.elementLocated(By.id('dealTitle')), timeOut).then(function () {
             driver.findElement(By.id('100_dealView' + x)).then(function (li) {
-                li.findElement(By.id('dealTitle')).findElement(By.css('a')).getAttribute('title').then(function (title) {
-                    callback(null, title)
+                li.findElement(By.id('dealTitle')).then(function (dealTitle) {
+                    dealTitle.findElement(By.css('a')).then(function (attribute) {
+                        attribute.getAttribute('title').then(function (title) {
+                            callback(null, title)
+                        })
+                    })
                 })
             })
         })
@@ -28,8 +32,12 @@ function fetchHref (x) {
     return function (callback) {
         driver.wait(until.elementLocated(By.id('dealTitle')), timeOut).then(function () {
             driver.findElement(By.id('100_dealView' + x)).then(function (li) {
-                li.findElement(By.id('dealTitle')).findElement(By.css('a')).getAttribute('href').then(function (href) {
-                    callback(null, href)
+                li.findElement(By.id('dealTitle')).then(function (dealTitle) {
+                    dealTitle.findElement(By.css('a')).then(function (attribute) {
+                        attribute.getAttribute('href').then(function (href) {
+                            callback(null, href)
+                        })
+                    })
                 })
             })
         })
@@ -40,21 +48,12 @@ function fetchPercentage (x) {
     return function (callback) {
         driver.wait(until.elementLocated(By.id('dealPercentClaimed')), timeOut).then(function () {
             driver.findElement(By.id('100_dealView' + x)).then(function (li) {
-                percentagePromise = li.findElement(By.id('dealPercentClaimed')).getText()
-                percentagePromise.then(function (percentage) {
-                    var percentIndex = percentage.indexOf('%')
-                    var percent = percentage.substring(0, percentIndex)
-                    callback(null, percent)
-                })
-                percentagePromise.catch(function (ex) {
-                    if (ex instanceof StaleElementReferenceError) {
-                        console.log('catch StaleElementReferenceError, retry to get percentage')
-                        li.findElement(By.id('dealPercentClaimed')).getText().then(function (price) {
-                            callback(null, price)
-                        })
-                    } else {
-                        throw e
-                    }
+                li.findElement(By.id('dealPercentClaimed')).then(function (element) {
+                    element.getText().then(function (percentage) {
+                        var percentIndex = percentage.indexOf('%')
+                        var percent = percentage.substring(0, percentIndex)
+                        callback(null, percent)
+                    })
                 })
             })
         })
@@ -99,9 +98,11 @@ function fetchRating (x) {
         driver.findElement(By.id('100_dealView' + x)).then(function (li) {
             li.findElements(By.id('dealRating')).then(function (elements) {
                 if (elements.length>0) {
-                    li.findElement(By.id('dealRating')).findElement(By.css('img')).then(function (img) {
-                        img.getAttribute('src').then(function (src) {
-                            callback(null, src)
+                    li.findElement(By.id('dealRating')).then(function (dealRate) {
+                        dealRate.findElement(By.css('img')).then(function (img) {
+                            img.getAttribute('src').then(function (src) {
+                                callback(null, src)
+                            })
                         })
                     })
                 }
@@ -116,11 +117,13 @@ function fetchReviews (x) {
         driver.findElement(By.id('100_dealView' + x)).then(function (li) {
             li.findElements(By.id('dealReviewsCount')).then(function (elemnts) {
                 if (elemnts.length>0) {
-                    li.findElement(By.id('dealReviewsCount')).getAttribute("textContent").then(function (reviews) {
-                        var leftParenthesis = reviews.indexOf('(')
-                        var rightParenthesis = reviews.indexOf(')')
-                        var reviewCount = reviews.substring((leftParenthesis + 1), rightParenthesis)
-                        callback(null, reviewCount)
+                    li.findElement(By.id('dealReviewsCount')).then(function (reviewNum) {
+                        reviewNum.getAttribute("textContent").then(function (reviews) {
+                            var leftParenthesis = reviews.indexOf('(')
+                            var rightParenthesis = reviews.indexOf(')')
+                            var reviewCount = reviews.substring((leftParenthesis + 1), rightParenthesis)
+                            callback(null, reviewCount)
+                        })
                     })
                 }
                 else callback(null, null)
@@ -387,7 +390,5 @@ var timeOut = 1800 * 1000
 
 new webdriver.Builder().forBrowser('chrome').buildAsync().then(function (drive) {
     driver = drive
-    //driver.manage().timeouts().pageLoadTimeout(3 * 1000)
-    //driver.manage().timeouts().implicitlyWait(3 * 1000)
     spider()
 })

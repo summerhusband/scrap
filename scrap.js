@@ -49,10 +49,26 @@ function fetchPercentage (x) {
         driver.wait(until.elementLocated(By.id('dealPercentClaimed')), timeOut).then(function () {
             driver.findElement(By.id('100_dealView' + x)).then(function (li) {
                 li.findElement(By.id('dealPercentClaimed')).then(function (element) {
-                    element.getText().then(function (percentage) {
+                    promise = element.getText()
+                    promise.then(function (percentage) {
                         var percentIndex = percentage.indexOf('%')
                         var percent = percentage.substring(0, percentIndex)
                         callback(null, percent)
+                    })
+                    promise.catch(function (ex) {
+                        if (ex instanceof StaleElementReferenceError) {
+                            console.log('catch StaleElementReferenceError, retry to get price')
+                            li.findElement(By.id('dealPercentClaimed')).then(function (element) {
+                                promise = element.getText()
+                                promise.then(function (percentage) {
+                                    var percentIndex = percentage.indexOf('%')
+                                    var percent = percentage.substring(0, percentIndex)
+                                    callback(null, percent)
+                                })
+                            })
+                        } else {
+                            throw ex
+                        }
                     })
                 })
             })
@@ -312,34 +328,15 @@ function postProcess(err, results)
 }
 
 function spider() {
-    promise = driver.get("http://www.z.cn")
-    promise.then(function () {
-        waitPormise = driver.wait(until.elementLocated(By.id('dealTotalPages')), timeOut)
-        waitPormise.catch(function (ex) {
-            console.log('catch exception in wait: ' + ex)
-            spider()
-        })
-        waitPormise.then(function (element) {
-            element.getText().then(function (totalPages) {
-                jobs = []
-                populateJob(parseInt(totalPages))
-                async.series(jobs, postProcess)
-            })
+    driver.get("http://www.z.cn").then(function () {
+    driver.wait(until.elementLocated(By.id('dealTotalPages')), timeOut).then(function (element) {
+        element.getText().then(function (totalPages) {
+            jobs = []
+            populateJob(parseInt(totalPages))
+            async.series(jobs, postProcess)
         })
     })
-    promise.catch(function (ex) {
-        console.log('catch exception in get' + ex)
-        if (ex instanceof TimeoutError) {
-            console.log('cat not visit www.z.cn, try again')
-            spider()
-        } else {
-            driver.close().then(function (p) {
-                console.log('catch unknown expcetion and exit')
-                driver.close()
-                throw ex
-            })
-        }
-    })
+})
 }
 
 function getSpiderFrequency () {

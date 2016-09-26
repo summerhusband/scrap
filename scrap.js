@@ -49,26 +49,27 @@ function fetchPercentage (x) {
         driver.wait(until.elementLocated(By.id('dealPercentClaimed')), timeOut).then(function () {
             driver.findElement(By.id('100_dealView' + x)).then(function (li) {
                 li.findElement(By.id('dealPercentClaimed')).then(function (element) {
-                    promise = element.getText()
-                    promise.then(function (percentage) {
-                        var percentIndex = percentage.indexOf('%')
-                        var percent = percentage.substring(0, percentIndex)
-                        callback(null, percent)
-                    })
-                    promise.catch(function (ex) {
+                    try {
+                        element.getText()
+                    } catch (ex) {
                         if (ex instanceof StaleElementReferenceError) {
                             console.log('catch StaleElementReferenceError, retry to get price')
                             li.findElement(By.id('dealPercentClaimed')).then(function (element) {
-                                promise = element.getText()
-                                promise.then(function (percentage) {
+                                element.getText().then(function (percentage) {
                                     var percentIndex = percentage.indexOf('%')
                                     var percent = percentage.substring(0, percentIndex)
                                     callback(null, percent)
                                 })
                             })
                         } else {
+                            console.log("catch unknown exception")
                             throw ex
                         }
+                    }
+                    element.getText().then(function (percentage) {
+                        var percentIndex = percentage.indexOf('%')
+                        var percent = percentage.substring(0, percentIndex)
+                        callback(null, percent)
                     })
                 })
             })

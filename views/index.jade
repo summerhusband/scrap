@@ -2,24 +2,24 @@ extends layout
 
 block content
     mixin showItem(item)
-        div.item(id= item.id)
-            a(href=item.href)
-                p.title= item.title
-            img.image(src=item.image)
-            div.detail
-                div
-                    p.price 价格: #{item.price}
-                    p.percentage 已经订购: #{item.percentage}%
-                div
-                    p.reviews 评价人数: #{item.reviews}
-                    p.rating 评价等级：
-                        img(src=item.rating)
+      div.item(id= item.id)
+          a(href=item.href)
+              p.title= item.title
+          img.image(src=item.image)
+          div.detail
+              div
+                  p.price 价格: #{item.price}
+                  p.percentage 已经订购: #{item.percentage}%
+              div
+                  p.reviews 评价人数: #{item.reviews}
+                  p.rating 评价等级：
+                      img(src=item.rating)
     a#top
     h3 如果有任何疑问， 请发邮件到kissyyg@126.com
     div#items
-        +showItem(itemTemplate)
-        each item in items
-            +showItem(item)
+      +showItem(itemTemplate)
+      each item in items
+        +showItem(item)
     a#toTop(href='#top')
         p 回到顶部
     script(src = "/socket.io/socket.io.js")
@@ -60,7 +60,25 @@ block content
             console.log('delete item ' + item.title)
             $('#' + item.id).remove()
         }
+        function reLoadPage() {
+          if (isReconnect) {
+            console.log('reconnect from server, reload page')
+            location.reload(true)
+          }
+        }
+        function disconnect() {
+            isReconnect = true
+            console.log('diconnect from server')
+        }
+        function sync() {
+          console.log('sync with server, reload page')
+          location.reload(true)
+        }
         var socket = io()
+        var isReconnect = false
         socket.on('addItem', addItem)
         socket.on('updateItem', updateItem)
         socket.on('deleteItem', deleteItem)
+        socket.on('connect', reLoadPage)
+        socket.on('disconnect', disconnect)
+        socket.on('syncTime', sync)

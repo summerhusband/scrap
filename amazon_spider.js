@@ -63,32 +63,48 @@ function fetchImage (itemNo) {
   }
 }
 
+// function fetchPrice (itemNo) {
+//   return function (callback) {
+//     driver.findElement(By.id('100_dealView' + itemNo))
+//     .findElements(By.id('dealDealPrice'))
+//     .then(function (elements) {
+//       if(elements.length>0) {
+//         elements[0].findElement(By.css('b'))
+//         .getText()
+//         .then((price)=>{callback(null, price)})
+//       } else {
+//         callback(null, null)
+//       }
+//     })
+//   }
+// }
+
 function fetchPrice (itemNo) {
   return function (callback) {
     driver.findElement(By.id('100_dealView' + itemNo))
-    .findElements(By.id('dealDealPrice'))
-    .then(function (elements) {
-      if(elements.length>0) {
-        elements[0].findElement(By.css('b'))
-        .getText()
-        .then((price)=>{callback(null, price)})
-      } else {
-        callback(null, null)
-      }
-    })
+    .findElement(By.id('dealDealPrice'))
+    .findElement(By.css('b'))
+    .getText()
+    .then((price)=>{callback(null, price)})
   }
 }
 
 function fetchRating (itemNo) {
   return function (callback) {
     driver.findElement(By.id('100_dealView' + itemNo))
-    .findElements(By.id('dealRating'))
-    .then(function (elements) {
-      if (elements.length>0) {
-        elements[0].findElement(By.css('img'))
+    .findElement(By.className('reviewsLink'))
+    .getAttribute('id')
+    .then((hasRating)=> {
+      if(hasRating){
+        driver.findElement(By.id('100_dealView' + itemNo))
+        .findElement(By.id('dealRating'))
+        .findElement(By.css('img'))
         .getAttribute('src')
         .then((src)=>{callback(null, src)})
-      } else {callback(null, null)}
+      } else {
+        winston.log('info','no rating available')
+        callback(null, null)
+      }
     })
   }
 }
@@ -96,17 +112,23 @@ function fetchRating (itemNo) {
 function fetchReviews (itemNo) {
   return function (callback) {
     driver.findElement(By.id('100_dealView' + itemNo))
-    .findElements(By.id('dealReviewsCount'))
-    .then(function (elements) {
-      if (elements.length>0) {
-        elements[0].getAttribute("textContent")
+    .findElement(By.className('reviewsLink'))
+    .getAttribute('id')
+    .then((hasRating)=> {
+      if(hasRating){
+        driver.findElement(By.id('100_dealView' + itemNo))
+        .findElement(By.id('dealReviewsCount'))
+        .getAttribute("textContent")
         .then(function (reviews) {
           var leftParenthesis = reviews.indexOf('(')
           var rightParenthesis = reviews.indexOf(')')
           var reviewCount = reviews.substring((leftParenthesis + 1), rightParenthesis)
           callback(null, reviewCount)
         })
-      } else {callback(null, null)}
+      } else {
+        winston.log('info','no review count available')
+        callback(null, null)
+      }
     })
   }
 }
@@ -430,6 +452,7 @@ setTimeout(startRun, 5*1000)
 function startRun() {
   new webdriver.Builder().forBrowser('chrome').build().then(function (drive) {
       driver = drive
+      driver.manage().timeouts().implicitlyWait(5*1000)
       spider()
   })
 }

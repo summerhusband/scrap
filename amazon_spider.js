@@ -189,52 +189,53 @@ function addItem(item) {
 function itemProcessor(item_no) {
   return function(callback) {
     driver.wait(until.elementLocated(By.id('100_dealView' + item_no))).then(function (li) {
-      setTimeout(()=> {
-        li.findElements(By.className('ldtimercont')).then(function (elements) {
-          if(elements.length>0) {
-            winston.log('info', 'handle item ' + '100_dealView' + item_no)
-            var fetchJobs = {
-              image: fetchImage(item_no),
-              title: fetchTitle(item_no),
-              price: fetchPrice(item_no),
-              percentage: fetchPercentage(item_no),
-              rating: fetchRating(item_no),
-              reviews: fetchReviews(item_no),
-              href: fetchHref(item_no)
-            }
-            async.parallel(fetchJobs, function (err, results) {
-              itemsScanCur.push(results)
-              if (needAdd(results))
-                addItem(results)
+      li.findElements(By.className('ldtimercont')).then(function (elements) {
+        if(elements.length>0) {
+          winston.log('info', 'handle item ' + '100_dealView' + item_no)
+          var fetchJobs = {
+            image: fetchImage(item_no),
+            title: fetchTitle(item_no),
+            price: fetchPrice(item_no),
+            percentage: fetchPercentage(item_no),
+            rating: fetchRating(item_no),
+            reviews: fetchReviews(item_no),
+            href: fetchHref(item_no)
+          }
+          async.parallel(fetchJobs, function (err, results) {
+            itemsScanCur.push(results)
+            if (needAdd(results))
+              addItem(results)
+            else {
+              if (needDelete(results))
+                deleteItem(results)
               else {
-                if (needDelete(results))
-                  deleteItem(results)
-                else {
-                  if (needUpdate(results))
-                    updateItem(results)
-                  else
-                    winston.log('info', 'No change for item ' + results.title)
-                  }
-              }
-              callback(null, null)
-            })
-          } else {
-            li.findElements(By.id('timerContent')).then(function (notStartElements) {
-              if(notStartElements.length > 0) {
-                winston.log('info', 'item is not started')
-                li.getText().then(function (text) {
-                  winston.log('info', text)
-                  reachNotStarted = true
-                  callback(null, null)
-                })
-              } else {
+                if (needUpdate(results))
+                  updateItem(results)
+                else
+                  winston.log('info', 'No change for item ' + results.title)
+                }
+            }
+            callback(null, null)
+          })
+        } else {
+          li.findElements(By.id('timerContent')).then(function (notStartElements) {
+            if(notStartElements.length > 0) {
+              winston.log('info', 'item is not started')
+              li.getText().then(function (text) {
+                winston.log('info', text)
+                reachNotStarted = true
+                callback(null, null)
+              })
+            } else {
+              li.getAttribute("outerHTML").then(function (liHtml) {
+                winston.log('info', liHtml)
                 winston.log('info', 'pass item')
                 callback(null, null)
-              }
-            })
-          }
-        })
-      }, 5000)
+              })
+            }
+          })
+        }
+      })
     })
   }
 }

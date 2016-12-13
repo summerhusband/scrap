@@ -250,7 +250,7 @@ function itemProcessor(item_no) {
               })
             } else {
               li.getAttribute("outerHTML").then(function (liHtml) {
-                winston.log('info', liHtml)
+                winston.debug('info', liHtml)
                 winston.log('info', 'pass item')
                 callback(null, null)
               })
@@ -357,7 +357,9 @@ function mongoInsertItems() {
       itemsDb.push(item)
     }
   })
-  db_layer.insert(itemsDb)
+  if (itemsDb.length > 0) {
+      db_layer.insert(itemsDb)
+  }
 }
 
 function removeDissapear() {
@@ -452,7 +454,7 @@ setTimeout(startRun, 5*1000)
 function startRun() {
   new webdriver.Builder().forBrowser('chrome').build().then(function (drive) {
       driver = drive
-      driver.manage().timeouts().implicitlyWait(5*1000)
+      driver.manage().timeouts().implicitlyWait(30*1000)
       spider()
   })
 }

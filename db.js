@@ -9,6 +9,23 @@ var test_items = [
      price: 21}
 ]
 
+function inspectHistory() {
+  MongoClient.connect(url, function (err, db) {
+    if (err) {
+      winston.log('info', 'Unable to connect to the mongoDB server. Error:', err)
+    } else {
+      winston.log('info', 'Connection established to', url)
+      var history = db.collection('history')
+      history.group(['title'], (err, items)=> {
+        // items.forEach((item)=> {
+        //   winston.log('info', "%j", item)
+          winston.log('info', items)
+          db.close()
+      })
+    }
+  })
+}
+
 function insert(items) {
   MongoClient.connect(url, function (err, db) {
     if (err) {
@@ -17,23 +34,26 @@ function insert(items) {
       winston.log('info', 'Connection established to', url)
       var history = db.collection('history')
       var time = new Date()
+      var itemsPersist = []
       items.forEach((item)=> {
         var itemDb = {
           title: item.title,
           price: item.price,
           salesTime: time
         }
-        history.insert(itemDb, function (err, result) {
-          if(err)  {
-            winston.log(err);
-          } else {
-            winston.log('info', "insert item success: %j", itemDb)
-          }
-        })
+        itemsPersist.push(itemDb)
       })
-      db.close()
+      history.insertMany(itemsPersist, function (err, result) {
+        if(err)  {
+          winston.log(err);
+        } else {
+          winston.log('info', "insert item success: %j", itemsPersist)
+        }
+        db.close()
+      })
     }
   })
 }
-
+//insert(test_items)
+//inspectHistory()
 exports.insert = insert

@@ -117,7 +117,7 @@ function validCheck(item, callback) {
   })
 }
 
-function insert(items) {
+function insert(item) {
   MongoClient.connect(url, function (err, db) {
     if (err) {
       winston.debug('info', 'Unable to connect to the mongoDB server. Error:', err)
@@ -125,25 +125,22 @@ function insert(items) {
       winston.debug('info', 'Connection established to', url)
       var history = db.collection('history')
       var time = new Date()
-      var itemsPersist = []
-      items.forEach((item)=> {
-        var itemDb = {
-          title: item.title,
-          price: item.price,
-          salesTime: time
+      var itemDb = {
+        title: item.title,
+        price: item.price,
+        salesTime: time
+      }
+      validCheck(itemDb, (isValid)=> {
+        if(isValid) {
+          history.insertOne(itemDb, function (err, result) {
+            if(err)  {
+              winston.log(err);
+            } else {
+              winston.log('info', "DB: insert item success: %j", itemDb)
+            }
+            db.close()
+          })
         }
-        validCheck(itemDb, (isValid)=> {
-          if(isValid) {
-            history.insertOne(itemDb, function (err, result) {
-              if(err)  {
-                winston.log(err);
-              } else {
-                winston.log('info', "DB: insert item success: %j", itemDb)
-              }
-              db.close()
-            })
-          }
-        })
       })
     }
   })
@@ -157,7 +154,7 @@ function insert(items) {
 
 //isValid('【双12预热自营秒杀】世界葡萄酒巨头澳洲洛神山庄 梅洛红葡萄酒750ml*6');
 //insert(test_items)
-//inspectHistory(3)
+//inspectHistory(1)
 // getSaleCountLowestPrice('爱维杰龙 全球通双USB旅行转换插座(白色)', 6, function(cnt, price) {
 //   winston.log('info', cnt)
 //   winston.log('info', price)

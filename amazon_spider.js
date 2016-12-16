@@ -351,7 +351,6 @@ function postProcess(err, results)
 }
 
 function mongoInsertItems() {
-  var itemsDb = []
   itemsScanPre.forEach(function (item) {
     var notFound = true
     itemsScanCur.forEach(function (curItem) {
@@ -361,12 +360,9 @@ function mongoInsertItems() {
     })
     if(notFound) {
       //winston.log('info', 'insert item into mongo: ' + item.title)
-      itemsDb.push(item)
+      db_layer.insert(item)
     }
   })
-  if (itemsDb.length > 0) {
-      db_layer.insert(itemsDb)
-  }
 }
 
 function removeDissapear() {

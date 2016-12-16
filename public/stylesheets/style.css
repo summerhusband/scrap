@@ -12,10 +12,10 @@ a {
 }
 .detail {
   padding-left: 300px;
-  height: 135px;
+  height: 165px;
 }
 .item {
-  width: 700px
+  width: 600px
 }
 #empty {
   display: none;
@@ -26,4 +26,3 @@ a {
   right: 10px;
   display: none;
 }
-

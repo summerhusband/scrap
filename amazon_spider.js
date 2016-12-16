@@ -198,14 +198,21 @@ function needAdd(itemCheck) {
 function addItem(item) {
   item.id = id
   id++
-  itemsInfo.push(item)
-  itemsInfo.sort(itemCompare)
-  var index = itemsInfo.indexOf(item)
-  var afterId = -1
-  if(index != 0)
-    afterId = (itemsInfo[index-1]).id
-  io.emit('addItem', {item: item, afterId: afterId})
-  winston.log('info', 'Emit ADD event for new item ' + item.title + ' after id' + afterId)
+  db_layer.getSaleCountLowestPrice(item.title, 6, (cnt, price)=> {
+    item.saleCountInSixMonth = cnt
+    if (price == 'unknow')
+      price = item.price
+    item.lowestPriceInSixMonth = price
+    winston.debug('info', 'count is: ' + cnt + 'lowest price is: ' + price)
+    itemsInfo.push(item)
+    itemsInfo.sort(itemCompare)
+    var index = itemsInfo.indexOf(item)
+    var afterId = -1
+    if(index != 0)
+      afterId = (itemsInfo[index-1]).id
+    io.emit('addItem', {item: item, afterId: afterId})
+    winston.log('info', 'Emit ADD event for new item ' + item.title + ' after id' + afterId)
+  })
 }
 
 function itemProcessor(item_no) {
@@ -403,7 +410,7 @@ var driver
 var roundCount = 1
 var id = 1
 var timeOut = 60 * 1000
-var persistExpiredTime = 3600 * 1000
+var persistExpiredTime = 60 * 1000
 var spider_interval = parseInt(getSpiderFrequency(), 10) * 1000
 var emptyItem = {
     id: 'empty',
@@ -454,7 +461,7 @@ setTimeout(startRun, 5*1000)
 function startRun() {
   new webdriver.Builder().forBrowser('chrome').build().then(function (drive) {
       driver = drive
-      driver.manage().timeouts().implicitlyWait(30*1000)
+      driver.manage().timeouts().implicitlyWait(60*1000)
       spider()
   })
 }

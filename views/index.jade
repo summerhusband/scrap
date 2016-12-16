@@ -14,6 +14,8 @@ block content
                   p.reviews 评价人数: #{item.reviews}
                   p.rating 评价等级：
                       img(src=item.rating)
+                  p.salesCountInSixM 六个月内促销次数：#{item.saleCountInSixMonth}
+                  p.lowestPriceInSixM 六个月内最低价：#{item.lowestPriceInSixMonth}
     a#top
     h3 如果有任何疑问， 请发邮件到kissyyg@126.com
     div#items
@@ -49,6 +51,8 @@ block content
             $('#' + id + ' div.detail p.percentage').text('已经订购: ' + item.percentage + '%')
             $('#' + id + ' div.detail p.reviews').text('评价人数:' + item.reviews)
             $('#' + id + ' div.detail p.rating img').attr("src", item.rating)
+            $('#' + id + ' div.detail p.salesCountInSixM').text('六个月内促销次数:' + item.saleCountInSixMonth)
+            $('#' + id + ' div.detail p.lowestPriceInSixM').text('六个月内最低价:' + item.lowestPriceInSixMonth)
         }
         function updateItem(newItem) {
             var item = newItem.item

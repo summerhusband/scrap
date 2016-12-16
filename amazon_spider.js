@@ -257,7 +257,7 @@ function itemProcessor(item_no) {
               })
             } else {
               li.getAttribute("outerHTML").then(function (liHtml) {
-                winston.debug('info', liHtml)
+                winston.log('info', liHtml)
                 winston.log('info', 'pass item')
                 callback(null, null)
               })

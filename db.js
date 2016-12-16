@@ -6,9 +6,9 @@ var url = 'mongodb://10.67.71.177:27017/amazon'
 function inspectHistory(countFilter) {
   MongoClient.connect(url, function (err, db) {
     if (err) {
-      winston.log('info', 'Unable to connect to the mongoDB server. Error:', err)
+      winston.debug('info', 'Unable to connect to the mongoDB server. Error:', err)
     } else {
-      winston.log('info', 'Connection established to', url)
+      winston.debug('info', 'Connection established to', url)
       var history = db.collection('history')
       history.group(['title'], {}, {"count":0}, function (obj, prev) {
         prev.count++;
@@ -36,9 +36,9 @@ function getSaleCountLowestPrice(title, monthDuration, callback) {
 
   MongoClient.connect(url, function (err, db) {
     if (err) {
-      winston.log('info', 'Unable to connect to the mongoDB server. Error:', err)
+      winston.debug('info', 'Unable to connect to the mongoDB server. Error:', err)
     } else {
-      winston.log('info', 'Connection established to', url)
+      winston.debug('info', 'Connection established to', url)
       var history = db.collection('history')
       history.count({title: title, salesTime: {$gte: monthsAgo}}, (err, count)=> {
         cnt = count
@@ -56,7 +56,7 @@ function getSaleCountLowestPrice(title, monthDuration, callback) {
               winston.debug('info', prices)
               lowestPrice = prices[0]
             }
-            winston.debug('info', ' count:' + cnt + ' price:' + lowestPrice)
+            winston.debug('info', 'DB: count:' + cnt + ' price:' + lowestPrice)
             db.close()
             callback(cnt, lowestPrice)
           })
@@ -72,9 +72,9 @@ function getSaleCountLowestPrice(title, monthDuration, callback) {
 function find (title) {
   MongoClient.connect(url, function (err, db) {
     if (err) {
-      winston.log('info', 'Unable to connect to the mongoDB server. Error:', err)
+      winston.debug('info', 'Unable to connect to the mongoDB server. Error:', err)
     } else {
-      winston.log('info', 'Connection established to', url)
+      winston.debug('info', 'Connection established to', url)
       var history = db.collection('history')
       history.find({title: title}).toArray()
       .then((aItems)=> {
@@ -87,12 +87,42 @@ function find (title) {
   })
 }
 
+function validCheck(item, callback) {
+  MongoClient.connect(url, function (err, db) {
+    if (err) {
+      winston.debug('info', 'Unable to connect to the mongoDB server. Error:', err)
+    } else {
+      winston.debug('info', 'Connection established to', url)
+      var history = db.collection('history')
+      history.find({title: item.title}).sort({salesTime: -1}).toArray()
+      .then((aItems)=> {
+        if(aItems.length > 0) {
+          var TWELVE_HOURS = 12 * 60 * 60 * 1000;
+          timeElapse = item.salesTime - aItems[0].salesTime
+          if(timeElapse > TWELVE_HOURS) {
+            db.close()
+            callback(true)
+          } else {
+            winston.log('info', 'DB: invalid' + item.title + ', last insert: ' +
+            aItems[0].salesTime + ' this insert: ' + item.salesTime)
+            db.close()
+            callback(false)
+          }
+        } else {
+          db.close()
+          callback(true)
+        }
+      })
+    }
+  })
+}
+
 function insert(items) {
   MongoClient.connect(url, function (err, db) {
     if (err) {
-      winston.log('info', 'Unable to connect to the mongoDB server. Error:', err)
+      winston.debug('info', 'Unable to connect to the mongoDB server. Error:', err)
     } else {
-      winston.log('info', 'Connection established to', url)
+      winston.debug('info', 'Connection established to', url)
       var history = db.collection('history')
       var time = new Date()
       var itemsPersist = []
@@ -102,27 +132,30 @@ function insert(items) {
           price: item.price,
           salesTime: time
         }
-        itemsPersist.push(itemDb)
-      })
-      history.insertMany(itemsPersist, function (err, result) {
-        if(err)  {
-          winston.log(err);
-        } else {
-          winston.log('info', "insert item success: %j", itemsPersist)
-        }
-        db.close()
+        validCheck(itemDb, (isValid)=> {
+          if(isValid) {
+            history.insertOne(itemDb, function (err, result) {
+              if(err)  {
+                winston.log(err);
+              } else {
+                winston.log('info', "DB: insert item success: %j", itemDb)
+              }
+              db.close()
+            })
+          }
+        })
       })
     }
   })
 }
 
-var test_items = [
-     {title: '爱维杰龙 全球通双USB旅行转换插座(白色)',
-      price: '¥6',
-      salesTime: getMonthsAgo(8)}
-]
+// var test_items = [
+//      {title: '爱维杰龙 全球通双USB旅行转(白色)',
+//       price: '¥6'
+//     }
+// ]
 
-//find('【双12预热自营秒杀】世界葡萄酒巨头澳洲洛神山庄 梅洛红葡萄酒750ml*6');
+//isValid('【双12预热自营秒杀】世界葡萄酒巨头澳洲洛神山庄 梅洛红葡萄酒750ml*6');
 //insert(test_items)
 //inspectHistory(3)
 // getSaleCountLowestPrice('爱维杰龙 全球通双USB旅行转换插座(白色)', 6, function(cnt, price) {

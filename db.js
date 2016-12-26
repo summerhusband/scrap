@@ -1,14 +1,15 @@
 var mongodb = require('mongodb')
 const winston = require('winston')
 var MongoClient = mongodb.MongoClient
+var globalVariable = require('./globalVariable.js')
 var url = 'mongodb://10.67.71.177:27017/amazon'
 
 function inspectHistory(countFilter) {
   MongoClient.connect(url, function (err, db) {
     if (err) {
-      winston.debug('info', 'Unable to connect to the mongoDB server. Error:', err)
+      winston.debug('info', 'DB: Unable to connect to the mongoDB server. Error:', err)
     } else {
-      winston.debug('info', 'Connection established to', url)
+      winston.info('info', 'DB: Connection established to', url)
       var history = db.collection('history')
       history.group(['title'], {}, {"count":0}, function (obj, prev) {
         prev.count++;
@@ -18,6 +19,7 @@ function inspectHistory(countFilter) {
           if(item.count >= countFilter)
             winston.log('info', item)
         })
+        db.close()
       })
     }
   })
@@ -36,9 +38,9 @@ function getSaleCountLowestPrice(title, monthDuration, callback) {
 
   MongoClient.connect(url, function (err, db) {
     if (err) {
-      winston.debug('info', 'Unable to connect to the mongoDB server. Error:', err)
+      winston.debug('info', 'DB: Unable to connect to the mongoDB server. Error:', err)
     } else {
-      winston.debug('info', 'Connection established to', url)
+      winston.debug('info', 'DB: Connection established to', url)
       var history = db.collection('history')
       history.count({title: title, salesTime: {$gte: monthsAgo}}, (err, count)=> {
         cnt = count
@@ -72,9 +74,9 @@ function getSaleCountLowestPrice(title, monthDuration, callback) {
 function find (title) {
   MongoClient.connect(url, function (err, db) {
     if (err) {
-      winston.debug('info', 'Unable to connect to the mongoDB server. Error:', err)
+      winston.debug('info', 'DB: Unable to connect to the mongoDB server. Error:', err)
     } else {
-      winston.debug('info', 'Connection established to', url)
+      winston.debug('info', 'DB: Connection established to', url)
       var history = db.collection('history')
       history.find({title: title}).toArray()
       .then((aItems)=> {
@@ -90,16 +92,15 @@ function find (title) {
 function validCheck(item, callback) {
   MongoClient.connect(url, function (err, db) {
     if (err) {
-      winston.debug('info', 'Unable to connect to the mongoDB server. Error:', err)
+      winston.debug('info', 'DB: Unable to connect to the mongoDB server. Error:', err)
     } else {
-      winston.debug('info', 'Connection established to', url)
+      winston.debug('info', 'DB: Connection established to', url)
       var history = db.collection('history')
       history.find({title: item.title}).sort({salesTime: -1}).toArray()
       .then((aItems)=> {
         if(aItems.length > 0) {
-          var TWELVE_HOURS = 12 * 60 * 60 * 1000;
           timeElapse = item.salesTime - aItems[0].salesTime
-          if(timeElapse > TWELVE_HOURS) {
+          if(timeElapse > globalVariable.config.spider.invalidInsertTimeElapse) {
             db.close()
             callback(true)
           } else {
@@ -120,9 +121,9 @@ function validCheck(item, callback) {
 function insert(item) {
   MongoClient.connect(url, function (err, db) {
     if (err) {
-      winston.debug('info', 'Unable to connect to the mongoDB server. Error:', err)
+      winston.debug('info', 'DB: Unable to connect to the mongoDB server. Error:', err)
     } else {
-      winston.debug('info', 'Connection established to', url)
+      winston.debug('info', 'DB: Connection established to', url)
       var history = db.collection('history')
       var time = new Date()
       var itemDb = {
@@ -154,7 +155,7 @@ function insert(item) {
 
 //isValid('【双12预热自营秒杀】世界葡萄酒巨头澳洲洛神山庄 梅洛红葡萄酒750ml*6');
 //insert(test_items)
-//inspectHistory(1)
+inspectHistory(1)
 // getSaleCountLowestPrice('爱维杰龙 全球通双USB旅行转换插座(白色)', 6, function(cnt, price) {
 //   winston.log('info', cnt)
 //   winston.log('info', price)
